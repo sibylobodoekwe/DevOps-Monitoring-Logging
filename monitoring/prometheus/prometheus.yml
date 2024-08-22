@@ -13,3 +13,27 @@ scrape_configs:
   - job_name: 'node_exporter'
     static_configs:
       - targets: ['node_exporter:9100']     
+
+
+
+ # loki:
+  #   image: grafana/loki:2.8.0
+  #   container_name: loki_container
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3100:3100"
+  #   volumes:
+  #     - ./monitoring/loki/config-loki.yml:/etc/loki/config.yml
+  #   networks:
+  #     - example-network
+
+
+  # promtail:
+  #   image: grafana/promtail:2.8.0
+  #   container_name: promtail_container
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /var/log:/var/log
+  #     - ./monitoring/promtail/config-promtail.yml:/etc/promtail/config.yml
+  #   networks:
+  #     - example-network 
