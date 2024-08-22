@@ -1,86 +1,56 @@
-name: docker-grafana-prometheus
+version: '3'
+
 services:
-  grafana:
-    entrypoint:
-      - sh
-      - -euc
-      - "mkdir -p /etc/grafana/provisioning/datasources\ncat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml\napiVersion: 1\ndatasources:\n- name: Loki\n  type: loki\n  access: proxy\n  orgId: 1\n  url: http://loki:3100\n  basicAuth: false\n  isDefault: true\n  version: 1\n  editable: false\nEOF\ncat <<EOF > /etc/grafana/provisioning/datasources/ds-prometheus.yaml\napiVersion: 1\ndatasources:\n- name: Prometheus\n  type: prometheus\n  access: proxy\n  orgId: 1\n  url: http://prometheus:9090\n  basicAuth: false\n  isDefault: false\n  version: 1\n  editable: true\nEOF\n /run.sh    \n"
-    environment:
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
-      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
-    image: grafana/grafana:latest
-    networks:
-      loki: null
-    ports:
-      - mode: ingress
-        target: 3000
-        published: "3000"
-        protocol: tcp
-
-  loki:
-    image: grafana/loki:2.9.2
-    networks:
-      loki: null
-    ports:
-      - mode: ingress
-        target: 3100
-        published: "3100"
-        protocol: tcp
-    volumes:
-      - type: bind
-        source: /Users/sibyl/docker-grafana-prometheus/monitoring/loki/local-config.yml
-        target: /etc/loki/local-config.yaml
-        bind:
-          create_host_path: true
-
-  node-exporter:
-    image: quay.io/prometheus/node-exporter:latest
-    networks:
-      default: null
-    ports:
-      - mode: ingress
-        target: 9100
-        published: "9100"
-        protocol: tcp
-
+  cadvisor:
+      image: gcr.io/cadvisor/cadvisor:v0.47.1
+      container_name: cadvisor_container
+      platform: linux/aarch64
+      ports:
+        - "8080:8080"
+      volumes:
+        - "/:/rootfs:ro"
+        - "/var/run:/var/run:ro"
+        - "/sys:/sys:ro"
+        - "/var/lib/docker/:/var/lib/docker:ro"
+        - "/dev/disk/:/dev/disk:ro"
+      networks:
+      - example-network  
+      
+  
   prometheus:
-    image: prom/prometheus:v2.46.0
-    networks:
-      default: null
+    image: prom/prometheus:latest
+    container_name: prometheus_container
+    restart: unless-stopped
+    depends_on:
+      - cadvisor
     ports:
-      - mode: ingress
-        target: 9090
-        published: "9090"
-        protocol: tcp
+      - "9090:9090"
     volumes:
-      - type: bind
-        source: /Users/sibyl/docker-grafana-prometheus/monitoring/prometheus/prometheus.yml
-        target: /etc/prometheus/prometheus.yml
-        bind:
-          create_host_path: true
-          
-  promtail:
-    command:
-      - -config.file=/etc/promtail/config.yml
-    image: grafana/promtail:2.9.2
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus.yml:/etc/prometheus/prometheus-scrape-config.yaml
+    # command:
+    #   - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
-      loki: null
+      - example-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana_container
+    restart: unless-stopped
+    ports:
+       - "3000:3000"
+    depends_on:
+      - prometheus
     volumes:
-      - type: bind
-        source: /Users/sibyl/docker-grafana-prometheus/monitoring/promtail/promtail-config.yml
-        target: /etc/promtail/config.yml
-        bind:
-          create_host_path: true
-      - type: bind
-        source: /var/log
-        target: /var/log
-        bind:
-          create_host_path: true
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    env_file:
+      - ./monitoring/grafana/config.monitoring
+    networks:
+      - example-network
 
 networks:
-  default:
-    name: docker-grafana-prometheus_default
-  loki:
-    name: docker-grafana-prometheus_loki
+  example-network:
+    name: example-network
     driver: bridge
+    # external: true
+
