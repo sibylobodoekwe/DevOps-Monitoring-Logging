@@ -1,28 +1,26 @@
 server:
-  http_listen_port: 9090
-  grpc_listen_port: 9096
+  http_listen_port: 9080   
+  grpc_listen_port: 0       
 
 positions:
-  filename: /tmp/positions.yaml
+  filename: /var/log/positions.yaml  
 
 clients:
-  - url: http://loki:3100/loki/api/v1/push
-
-  
+  - url: http://loki:3100/loki/api/v1/push  
 
 scrape_configs:
-  - job_name: docker
+  - job_name: docker_logs
     static_configs:
       - targets:
           - localhost
         labels:
           job: docker_logs
-          __path__: /var/lib/docker/containers/*/*-json.log
+          __path__: /var/lib/docker/containers/*/*-json.log  
 
-  - job_name: system
+  - job_name: system_logs
     static_configs:
       - targets:
           - localhost
         labels:
-          job: varlogs
-          __path__: /var/log/*log
+          job: system_logs
+          __path__: /var/log/*.log  

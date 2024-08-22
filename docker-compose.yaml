@@ -33,6 +33,7 @@ services:
     networks:
       - example-network
 
+
   grafana:
     image: grafana/grafana
     container_name: grafana_container
@@ -47,6 +48,17 @@ services:
       - ./monitoring/grafana/config.monitoring
     networks:
       - example-network
+
+  
+  node_exporter:
+    image: prom/node-exporter
+    container_name: node_exporter_container
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    networks:
+      - example-network     
+      
 
 networks:
   example-network:
